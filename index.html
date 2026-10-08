@@ -3,61 +3,164 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ôn Tập Tiếng Nga</title>
+    <title>Hệ Thống Từ Vựng Tiếng Nga</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background-color: #f0f2f5; display: none; }
-        .card { background: white; padding: 20px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .ru { font-size: 24px; font-weight: bold; color: #1a73e8; }
-        .vi { font-size: 18px; margin-top: 10px; }
-        .type { color: gray; font-style: italic; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 15px; background-color: #f0f2f5; margin: 0; display: none; }
+        .container { max-width: 600px; margin: 0 auto; }
+        
+        /* Navigation Tabs */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: #e4e6eb; font-weight: bold; font-size: 16px; border-radius: 8px; cursor: pointer; }
+        .tab-btn.active { background: #1a73e8; color: white; }
+
+        /* General UI Elements */
+        .search-box { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; margin-bottom: 15px; }
+        .card { background: white; padding: 18px; margin-bottom: 12px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.08); }
+        .ru { font-size: 22px; font-weight: bold; color: #1a73e8; }
+        .vi { font-size: 17px; margin-top: 8px; color: #202124; }
+        .type { color: #5f6368; font-style: italic; font-size: 14px; margin-top: 4px; }
+        .gram { color: #d93025; font-size: 14px; margin-top: 6px; font-weight: 500; }
+
+        /* Quiz UI */
+        .quiz-card { background: white; padding: 30px 20px; border-radius: 12px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .quiz-ru { font-size: 28px; font-weight: bold; color: #1a73e8; margin-bottom: 10px; }
+        .quiz-vi { font-size: 20px; color: #3c4043; margin-top: 15px; display: none; background: #e8f0fe; padding: 12px; border-radius: 8px; }
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        .btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .btn-show { background: #fbbc04; color: #202124; }
+        .btn-next { background: #34a853; color: white; }
     </style>
 </head>
 <body>
-    <h2>Từ điển của tôi</h2>
-    <div id="data">Đang tải dữ liệu...</div>
+    <div class="container">
+        <!-- Chuyển đổi giữa Từ điển & Bài tập -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('dict')">📖 Từ Điển</button>
+            <button class="tab-btn" onclick="switchTab('quiz')">✍️ Luyện Tập</button>
+        </div>
+
+        <!-- MỤC 1: TỪ ĐIỂN TRA CỨU -->
+        <div id="dictSection">
+            <input type="text" id="searchInput" class="search-box" placeholder="Tìm từ tiếng Nga hoặc Việt..." onkeyup="filterVocab()">
+            <div id="dictList">Đang tải dữ liệu...</div>
+        </div>
+
+        <!-- MỤC 2: LÀM BÀI TẬP FLASHCARD -->
+        <div id="quizSection" style="display: none;">
+            <div class="quiz-card">
+                <div class="type" id="qType">Loại từ</div>
+                <div class="quiz-ru" id="qRu">Từ tiếng Nga</div>
+                <div class="quiz-vi" id="qVi">Nghĩa tiếng Việt</div>
+                <div class="gram" id="qGram" style="margin-top: 10px;"></div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-show" onclick="showAnswer()">Xem Đáp Án</button>
+                    <button class="btn btn-next" onclick="nextQuestion()">Từ Tiếp Theo ➔</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
-        // Hộp thoại nhập mật khẩu chặn người lạ
-        let pass = prompt("Nhập mật khẩu để vào web:");
-        // Thay "1234" bằng mật khẩu bạn muốn
-        if(pass === "1234") {
+        let vocabData = [];
+
+        // Kiểm tra mật khẩu
+        let pass = prompt("Nhập mật khẩu để truy cập:");
+        if (pass === "1234") { // Thay "1234" bằng mật khẩu bạn thích
             document.body.style.display = "block";
             loadData();
         } else {
-            alert("Sai mật khẩu!");
+            alert("Mật khẩu không chính xác!");
         }
 
+        // Tải dữ liệu từ Google Sheets
         async function loadData() {
-            // Thay ID bảng tính Google Sheets của bạn vào đây
-            const sheetID = "1xsQp1X3Kr_295Z0PJ8OYYy5tmTrw3Lqb0LSc440PLdc"; 
+            const sheetID = "1xsQp1X3Kr_295Z0PJ8OYYy5tmTrw3Lqb0LSc440PLdc";
             const url = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:tsv`;
-            
+
             try {
                 const response = await fetch(url);
                 const text = await response.text();
                 
                 const rows = text.split('\n').slice(1);
-                let html = '';
-                
+                vocabData = [];
+
                 rows.forEach(row => {
-                    const cols = row.split('\t');
-                    if(cols.length >= 4) {
-                        let ru = cols[0].replace(/"/g, "");
-                        let type = cols[1].replace(/"/g, "");
-                        let vi = cols[2].replace(/"/g, "");
-                        let gram = cols[3].replace(/"/g, "");
-                        
-                        html += `<div class="card">
-                                    <div class="ru">${ru}</div>
-                                    <div class="type">${type}</div>
-                                    <div class="vi">${vi}</div>
-                                    <div class="type">${gram}</div>
-                                </div>`;
+                    const cols = row.split('\t').map(c => c.replace(/^"|"$/g, '').trim());
+                    if (cols[0]) { // Kiểm tra nếu ô từ tiếng Nga có dữ liệu
+                        vocabData.push({
+                            ru: cols[0] || '',
+                            type: cols[1] || '',
+                            vi: cols[2] || '',
+                            gram: cols[3] || ''
+                        });
                     }
                 });
-                document.getElementById('data').innerHTML = html;
-            } catch(e) {
-                document.getElementById('data').innerHTML = "Lỗi kết nối dữ liệu. Hãy kiểm tra lại ID và quyền chia sẻ.";
+
+                renderDictionary(vocabData);
+                nextQuestion();
+            } catch (e) {
+                document.getElementById('dictList').innerHTML = "Lỗi tải dữ liệu. Hãy kiểm tra lại ID hoặc quyền chia sẻ Bảng tính.";
+            }
+        }
+
+        // Hiển thị danh sách Từ điển
+        function renderDictionary(data) {
+            let html = '';
+            data.forEach(item => {
+                html += `<div class="card">
+                            <div class="ru">${item.ru}</div>
+                            ${item.type ? `<div class="type">${item.type}</div>` : ''}
+                            <div class="vi">${item.vi}</div>
+                            ${item.gram ? `<div class="gram">${item.gram}</div>` : ''}
+                        </div>`;
+            });
+            document.getElementById('dictList').innerHTML = html || "Không tìm thấy từ phù hợp.";
+        }
+
+        // Tìm kiếm từ vựng
+        function filterVocab() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = vocabData.filter(item => 
+                item.ru.toLowerCase().includes(query) || item.vi.toLowerCase().includes(query)
+            );
+                renderDictionary(filtered);
+        }
+
+        // Chuyển tab giữa Từ điển và Bài tập
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            if (tab === 'dict') {
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.getElementById('dictSection').style.display = 'block';
+                document.getElementById('quizSection').style.display = 'none';
+            } else {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('dictSection').style.display = 'none';
+                document.getElementById('quizSection').style.display = 'block';
+            }
+        }
+
+        // Logic Bài tập
+        let currentItem = null;
+        function nextQuestion() {
+            if (vocabData.length === 0) return;
+            currentItem = vocabData[Math.floor(Math.random() * vocabData.length)];
+            
+            document.getElementById('qRu').innerText = currentItem.ru;
+            document.getElementById('qType').innerText = currentItem.type || 'Từ vựng';
+            document.getElementById('qVi').innerText = currentItem.vi;
+            document.getElementById('qGram').innerText = currentItem.gram;
+            
+            document.getElementById('qVi').style.display = 'none';
+            document.getElementById('qGram').style.display = 'none';
+        }
+
+        function showAnswer() {
+            document.getElementById('qVi').style.display = 'block';
+            if (currentItem && currentItem.gram) {
+                document.getElementById('qGram').style.display = 'block';
             }
         }
     </script>

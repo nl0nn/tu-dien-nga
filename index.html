@@ -67,7 +67,7 @@
 
         // Kiểm tra mật khẩu
         let pass = prompt("Nhập mật khẩu để truy cập:");
-        if (pass === "1234") { // Thay "1234" bằng mật khẩu bạn thích
+        if (pass === "1234") { 
             document.body.style.display = "block";
             loadData();
         } else {
@@ -77,18 +77,22 @@
         // Tải dữ liệu từ Google Sheets
         async function loadData() {
             const sheetID = "1xsQp1X3Kr_295Z0PJ8OYYy5tmTrw3Lqb0LSc440PLdc";
-            const url = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:tsv`;
+            // Sử dụng định dạng export TSV chuẩn để không bị lỗi JSON
+            const url = `https://docs.google.com/spreadsheets/d/${sheetID}/export?format=tsv`;
 
             try {
                 const response = await fetch(url);
                 const text = await response.text();
                 
-                const rows = text.split('\n').slice(1);
+                const rows = text.split('\n');
                 vocabData = [];
 
                 rows.forEach(row => {
                     const cols = row.split('\t').map(c => c.replace(/^"|"$/g, '').trim());
-                    if (cols[0]) { // Kiểm tra nếu ô từ tiếng Nga có dữ liệu
+                    
+                    // Chỉ lấy những dòng có đủ chữ ở cả cột Từ vựng (0) và Nghĩa tiếng Việt (2)
+                    // Đồng thời bỏ qua dòng tiêu đề "Từ vựng (Tiếng Nga)"
+                    if (cols.length >= 3 && cols[0] !== '' && cols[2] !== '' && !cols[0].includes('Từ vựng')) { 
                         vocabData.push({
                             ru: cols[0] || '',
                             type: cols[1] || '',
@@ -101,7 +105,7 @@
                 renderDictionary(vocabData);
                 nextQuestion();
             } catch (e) {
-                document.getElementById('dictList').innerHTML = "Lỗi tải dữ liệu. Hãy kiểm tra lại ID hoặc quyền chia sẻ Bảng tính.";
+                document.getElementById('dictList').innerHTML = "Lỗi tải dữ liệu. Hãy kiểm tra lại kết nối mạng.";
             }
         }
 
@@ -116,7 +120,7 @@
                             ${item.gram ? `<div class="gram">${item.gram}</div>` : ''}
                         </div>`;
             });
-            document.getElementById('dictList').innerHTML = html || "Không tìm thấy từ phù hợp.";
+            document.getElementById('dictList').innerHTML = html || "Chưa có từ vựng nào.";
         }
 
         // Tìm kiếm từ vựng
@@ -125,7 +129,7 @@
             const filtered = vocabData.filter(item => 
                 item.ru.toLowerCase().includes(query) || item.vi.toLowerCase().includes(query)
             );
-                renderDictionary(filtered);
+            renderDictionary(filtered);
         }
 
         // Chuyển tab giữa Từ điển và Bài tập

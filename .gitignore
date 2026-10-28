@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Database and raw data (can be generated via build_dictionary.py)
+*.db
+raw_data/
+*.zip
+
+# OS / Editor files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

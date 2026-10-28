@@ -15,31 +15,73 @@ Dự án từ điển tiếng Nga toàn diện dành cho người Việt, lấy 
 ## 🗂️ Cấu Trúc Dự Án
 
 ```text
-openrussian-vi/
-├── openrussian_vi.db          # Database SQLite hoàn chỉnh (Words, Word_Forms, Indexes)
-├── build_dictionary.py       # Script tự động tải nguồn & merge dữ liệu
+tu-dien-nga/
 ├── app.py                    # Server tra cứu demo & giao diện Web tra từ giống OpenRussian
-├── raw_data/                 # Thư mục chứa dữ liệu thô (.csv và .zip)
+├── build_dictionary.py       # Script tự động tải nguồn & merge dữ liệu, tạo database
+├── README.md
+├── data/
+│   └── Tong_hop_tu_vung_Tieng_Nga.xlsx
+├── raw_data/                 # Tự tạo khi chạy build_dictionary.py, không commit lên repo
 │   ├── nouns.csv             # OpenRussian dataset: Danh từ + 6 cách số ít/nhiều
 │   ├── verbs.csv             # OpenRussian dataset: Động từ + thì + ngôi + thể
 │   ├── adjectives.csv        # OpenRussian dataset: Tính từ + biến cách + so sánh
 │   ├── others.csv            # OpenRussian dataset: Trạng từ, liên từ, giới từ
 │   └── stardict_ru_vi.zip    # Từ điển Nga - Việt StarDict v1.0 (~38k từ)
-└── README.md
+└── openrussian_vi.db         # Tự tạo khi chạy build_dictionary.py (~101 MB), không commit lên repo
+                               # Database SQLite hoàn chỉnh (Words, Word_Forms, Indexes)
 ```
 
 ---
 
 ## 🚀 Cách Chạy Thử Giao Diện Web
 
-Dự án sử dụng Python thuần và thư viện chuẩn (không cần cài thêm bất kỳ gói pip phức tạp nào):
+Dự án sử dụng Python thuần và thư viện chuẩn (không cần cài thêm bất kỳ gói pip nào). Đã kiểm chứng trên Python 3.12.
+
+### Bước 1 — Clone repo
 
 ```bash
-cd "C:\Users\ASUS\.gemini\antigravity\scratch\openrussian-vi"
+git clone https://github.com/nl0nn/tu-dien-nga.git
+cd tu-dien-nga
+```
+
+### Bước 2 — Tạo database (bắt buộc, chỉ làm 1 lần)
+
+File `openrussian_vi.db` **không có sẵn trong repo** (đã loại khỏi repo trong `.gitignore`), nên phải tạo bằng script build. Bước này cần mạng, tải khoảng 25 MB dữ liệu thô và tạo database khoảng 101 MB, mất khoảng 30 giây:
+
+```bash
+python build_dictionary.py
+```
+
+Trên macOS / Linux dùng `python3` thay cho `python`.
+
+Chạy xong sẽ thấy:
+
+```text
+DATABASE BUILT SUCCESSFULLY: .../openrussian_vi.db
+Total Dictionary Words: 58,825
+Total Inflected Forms Indexed: 705,665
+Direct Vietnamese Matches: 32,017 / 58,825 (54.4%)
+```
+
+> ⚠️ Nếu bỏ qua bước này mà chạy `app.py` luôn, trang chủ vẫn mở được nhưng tra từ sẽ lỗi `sqlite3.OperationalError: no such table: words` và không trả kết quả.
+
+### Bước 3 — Chạy server
+
+```bash
 python app.py
 ```
 
-Sau đó mở trình duyệt truy cập: **`http://127.0.0.1:8080`**
+Muốn đổi cổng thì truyền thêm số cổng, ví dụ:
+
+```bash
+python app.py 8081
+```
+
+### Bước 4 — Mở trình duyệt
+
+Truy cập: **`http://127.0.0.1:8080`** (hoặc cổng bạn đã đổi ở bước 3).
+
+Dừng server bằng `Ctrl+C`.
 
 ### Các tính năng đã có trong giao diện:
 1. **Live Search & Autocomplete:** Gõ tới đâu hiển thị gợi ý từ gốc và nghĩa tới đó.
@@ -53,11 +95,19 @@ Sau đó mở trình duyệt truy cập: **`http://127.0.0.1:8080`**
    * **Tính từ:** Dạng ngắn (краткая форма), so sánh hơn/nhất, bảng biến cách theo giống.
 4. **Bàn phím ảo mini:** Gắn nhanh dấu trọng âm (`́`) và các ký tự đặc biệt như `ы`, `ё`, `й`, `ь`, `ъ`, `э`.
 
+### Xử lý lỗi thường gặp
+
+| Lỗi / Hiện tượng | Cách xử lý |
+|---|---|
+| `sqlite3.OperationalError: no such table: words`, tra từ không ra kết quả | Chưa có database. Chạy lại **Bước 2**: `python build_dictionary.py`, rồi chạy lại `app.py`. |
+| Cổng 8080 đã bị chiếm (`Address already in use`) | Chạy với cổng khác: `python app.py 8081`, rồi mở `http://127.0.0.1:8081`. |
+| `python: command not found` (macOS / Linux) | Dùng `python3 build_dictionary.py` và `python3 app.py`. |
+
 ---
 
 ## 🔌 Tích Hợp Vào Dự Án Web Của Bạn (Next.js / Vue / Express / FastAPI)
 
-File SQLite `openrussian_vi.db` có thể dùng trực tiếp trong bất kỳ framework backend nào:
+File SQLite `openrussian_vi.db` (tạo ở Bước 2) có thể dùng trực tiếp trong bất kỳ framework backend nào:
 
 ### Ví dụ truy vấn SQL:
 ```sql
